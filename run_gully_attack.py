@@ -7,13 +7,13 @@ import numpy as np
 from os import path
 
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Convolution2D, Permute
+from keras.layers import Dense, Activation, Flatten, Convolution2D, Permute, Input
 from keras.optimizers import Adam
 import keras.backend as K
 
 from rl.agents.dqn import DQNAgent
 from rl.policy import LinearAnnealedPolicy, BoltzmannQPolicy, EpsGreedyQPolicy
-from rl.memory import SequentialMemory
+from rl.memory import SequentialMemory, EpisodeParameterMemory
 from rl.core import Processor
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 
@@ -53,7 +53,7 @@ env = GullyAttackEnv(image_size=IMAGE_SHAPE[0],
                      images=IMAGES, 
                      image_path=IMAGE_PATH, 
                      time_limit=100000,
-                     miss_limit=50)
+                     miss_limit=1000)
 
 np.random.seed(42)
 env.seed(42)
@@ -67,19 +67,16 @@ nb_actions = env.n_actions
 ###
 # This is the network from the keras-rl example
 if args.mode == 'train' or args.mode == 'test':
-    input_shape =  IMAGE_SHAPE + (CHANNELS,)
+    input_shape = (WINDOW_LENGTH,) + IMAGE_SHAPE
     model = Sequential()
     if K.image_dim_ordering() == 'tf':
         # (width, height, channels)
-        # do nothing
-        pass
-        model.add(Permute((1, 2, 3), input_shape=input_shape))
+        model.add(Permute((2, 3, 1), input_shape=input_shape))
     elif K.image_dim_ordering() == 'th':
         # (channels, width, height)
-        model.add(Permute((2, 3, 1), input_shape=input_shape))
-    else:
-        raise RuntimeError('Unknown image_dim_ordering.')
-    model.add(Convolution2D(32, (8, 8), strides=(4, 4)))
+        model.add(Permute((1, 2, 3), input_shape=input_shape))
+
+    model.add(Convolution2D(32, (8, 8), strides=(4, 4), input_shape=input_shape))
     model.add(Activation('relu'))
     model.add(Convolution2D(64, (4, 4), strides=(2, 2)))
     model.add(Activation('relu'))
@@ -98,7 +95,8 @@ if args.mode == 'train' or args.mode == 'test':
 #
 ###
 if args.mode == 'train' or args.mode == 'test':
-    memory = SequentialMemory(limit=1000000, window_length=WINDOW_LENGTH)
+    memory = SequentialMemory(limit=1000, window_length=WINDOW_LENGTH)
+    #memory = EpisodeParameterMemory(limit=1000, window_length=1)
 
 # Select a policy. We use eps-greedy action selection, which means that a random action is selected
 # with probability eps. We anneal eps from 1.0 to 0.1 over the course of 1M steps. This is done so that
@@ -138,7 +136,7 @@ if args.mode == 'train':
     log_filename = 'dqn_{}_log.json'.format(timestamp)
     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=250000)]
     callbacks += [FileLogger(log_filename, interval=100)]
-    dqn.fit(env, callbacks=callbacks, nb_steps=1750000, log_interval=10000)
+    dqn.fit(env, callbacks=callbacks, nb_steps=1750000, log_interval=10000, visualize=True)
 
     # After training is done, we save the final weights one more time.
     dqn.save_weights(weights_filename, overwrite=True)

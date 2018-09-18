@@ -50,7 +50,6 @@ class GullyAttackEnv(gym.Env):
         # The background and target mask is static 
         self.wallpaper = self._load_image_as_np(images['wallpaper'])
         self.background = self._load_image_as_np(images['background'])
-        print(self.background.shape)
         self.target = self._load_image_as_np(images['target'])
 
         # (Re)set all counters and state
@@ -136,16 +135,14 @@ class GullyAttackEnv(gym.Env):
         if self.miss_count > self.MISS_LIMIT:
             done = True
 
-        if done:
-            print('Episode is done')
-        
         # Enforce periodic boundary conditions to avoid moving out of frame
         self.position[0] = divmod(self.position[0], self.image_size)[1]
         self.position[1] = divmod(self.position[1], self.image_size)[1]
 
         # Assemble new observation and add cursor
-        observation = np.dstack([self.background, self.hits])
-        observation[self.position[0], self.position[1], 0] = 1 
+        observation = self.background #np.dstack([self.background, self.hits])
+        observation[self.position[0], self.position[1]] = 255 
+        observation[self.hits > 0.0] = 0 
 
         return observation, reward, done, {}
 
@@ -162,8 +159,9 @@ class GullyAttackEnv(gym.Env):
         # Reset any counters 
         self.miss_count = 0
         self.time = 0
-
-        return self.observation_space
+        
+        return self.background
+        #return self.observation_space
 
     def render(self, mode='human', close=False):
         if close and self.viewer:
