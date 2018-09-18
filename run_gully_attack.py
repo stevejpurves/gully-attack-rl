@@ -31,7 +31,7 @@ args = parser.parse_args()
 # second is used for the hits and misses state
 CHANNELS = 2
 
-IMAGE_SHAPE = (256,256)
+IMAGE_SHAPE = (128, 128)
 # its possible as per the keras-rl atari example to preent multiple frames of teh environment
 # to the network to allow teh network to see changes over a short time span
 # setting this to 1 for the first pass, so agent will only make decisions based on the current state
@@ -44,11 +44,16 @@ WINDOW_LENGTH = 4
 
 IMAGE_PATH = path.join(path.dirname(__file__), 'images')
 IMAGES = {
-    'background': 'blob.png',
-    'target': 'blob_grey.png'
+    'wallpaper': 'rgb_il2300.crop.png',
+    'background': 'grey_il2300.crop.png',
+    'target': 'grey_label_il2300.crop.png'
 }
 
-env = GullyAttackEnv(image_size=IMAGE_SHAPE[0], images=IMAGES, image_path=IMAGE_PATH)
+env = GullyAttackEnv(image_size=IMAGE_SHAPE[0], 
+                     images=IMAGES, 
+                     image_path=IMAGE_PATH, 
+                     time_limit=100000,
+                     miss_limit=50)
 
 np.random.seed(42)
 env.seed(42)
@@ -62,14 +67,16 @@ nb_actions = env.n_actions
 ###
 # This is the network from the keras-rl example
 if args.mode == 'train' or args.mode == 'test':
-    input_shape = (CHANNELS,) + IMAGE_SHAPE
+    input_shape =  IMAGE_SHAPE + (CHANNELS,)
     model = Sequential()
     if K.image_dim_ordering() == 'tf':
         # (width, height, channels)
-        model.add(Permute((2, 3, 1), input_shape=input_shape))
+        # do nothing
+        pass
+        model.add(Permute((1, 2, 3), input_shape=input_shape))
     elif K.image_dim_ordering() == 'th':
         # (channels, width, height)
-        model.add(Permute((1, 2, 3), input_shape=input_shape))
+        model.add(Permute((2, 3, 1), input_shape=input_shape))
     else:
         raise RuntimeError('Unknown image_dim_ordering.')
     model.add(Convolution2D(32, (8, 8), strides=(4, 4)))
@@ -127,7 +134,7 @@ if args.mode == 'train':
     # can be prematurely aborted. Notice that you can the built-in Keras callbacks!
     timestamp = time.time()
     weights_filename = 'dqn_{}_weights.h5f'.format(timestamp)
-    checkpoint_weights_filename = 'dqn_' + timestamp + '_weights_{step}.h5f'
+    checkpoint_weights_filename = 'dqn_' + str(timestamp) + '_weights_{step}.h5f'
     log_filename = 'dqn_{}_log.json'.format(timestamp)
     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=250000)]
     callbacks += [FileLogger(log_filename, interval=100)]
