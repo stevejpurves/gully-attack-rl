@@ -37,23 +37,25 @@ class GullyAttackEnv(gym.Env):
         functionality over time.
     """
 
-    def __init__(self, time_limit=TIME_LIMIT, miss_limit=MISS_LIMIT, image_size=IMAGE_SIZE,
-                        images=IMAGES):
+    def __init__(self, images, image_path, time_limit=TIME_LIMIT, miss_limit=MISS_LIMIT, image_size=IMAGE_SIZE):
+        self.images = images
+        self.image_path = image_path
+        self.image_size = image_size
         if not self._check_paths():
             raise ValueError("Invalid image paths, one or more images don't exist")
 
         self.TIME_LIMIT = time_limit
         self.MISS_LIMIT = miss_limit
 
+        # The background and target mask is static 
+        self.background = self._load_image_as_np(images['background'])
+        self.background_grayscale = self.background[:, :, 0]
+        self.target = self._load_image_as_np(images['target'])
+
         # (Re)set all counters and state
         self.reset()
 
-        # The background and target mask is static 
-        self.background = self._load_image_as_np(images['background'])
-        self.target = self._load_image_as_np(images['target'])
-
         # Check that the size is consistent
-        self.image_size = image_size
         if self.background.shape[0] != self.image_size or self.background.shape[1] != self.image_size:
             raise ValueError('Incorrect size of background image')
         if self.target.shape[0] != self.image_size or self.target.shape[1] != self.image_size:
@@ -66,13 +68,12 @@ class GullyAttackEnv(gym.Env):
         self.viewer = None
 
     def _check_paths(self):
-        print("background", path.join(IMAGE_PATH, images['background']))
-        print("data", path.join(IMAGE_PATH, images['data']))
-        print("reward", path.join(IMAGE_PATH, images['reward']))
-        return path.exists(path.join(IMAGE_PATH, images['background'])) and path.exists(path.join(IMAGE_PATH, images['data'])) and path.exists(path.join(IMAGE_PATH, images['reward']))
+        print("background", path.join(self.image_path, self.images['background']))
+        print("target", path.join(self.image_path, self.images['target']))
+        return path.exists(path.join(self.image_path, self.images['background'])) and path.exists(path.join(self.image_path, self.images['target']))
 
     def _load_image_as_np(self, filename):
-        img = Image.open(path.join(IMAGE_PATH, filename))
+        img = Image.open(path.join(self.image_path, filename))
         return np.array(img)
 
     @property
@@ -115,8 +116,8 @@ class GullyAttackEnv(gym.Env):
         elif action_meaning == 'LEFT':
             self.position[0] -= 1
         elif action_meaning == 'RIGHT':
-            self.position += 1
-        elif action_meaning = 'SHOOT':
+            self.position[1] += 1
+        elif action_meaning == 'SHOOT':
             # Check if previous hit
             if self.hits[self.position[0], self.position[1]] == 1:
                 reward = -1
@@ -137,7 +138,7 @@ class GullyAttackEnv(gym.Env):
         self.position[1] = divmod(self.position[1], self.image_size)[1]
 
         # Assemble new observation and add cursor
-        observation = np.dstack([self.background, self.hits])
+        observation = np.dstack([self.background_grayscale, self.hits])
         observation[self.position[0], self.position[1], 0] = 1 
 
         return observation, reward, done, {}
@@ -145,12 +146,12 @@ class GullyAttackEnv(gym.Env):
 
     def reset(self):
         # Start in a random pixel in the image
-        self.position = (np.random.randint(low=0, high=self.image_size),
-                                  np.random.randint(low=0, high=self.image_size))
+        self.position = [np.random.randint(low=0, high=self.image_size),
+                                  np.random.randint(low=0, high=self.image_size)]
 
         # Reset the non-static part of the observational space 
-        self.hits = np.zeros_like(self.background, dtype=float),
-        self.observation_space = np.dstack(self.background, self.hits) 
+        self.hits = np.zeros_like(self.background_grayscale, dtype=float)
+        self.observation_space = np.dstack([self.background_grayscale, self.hits]) 
         
         # Reset any counters 
         self.miss_count = 0
@@ -162,7 +163,8 @@ class GullyAttackEnv(gym.Env):
             self.viewer = None
             return
 
-        img = self.observation_space
+        # background is an rgba-array. We use this for rendering.
+        img = self.background
         if mode == 'rgb_array':
             return img
         elif mode == 'human':
