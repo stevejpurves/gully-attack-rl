@@ -118,10 +118,9 @@ class GullyAttackEnv(gym.Env):
         elif action_meaning == 'RIGHT':
             self.position[0] += 1
         elif action_meaning == 'SHOOT':
-            # Check if previous hit
-            if self.hits[self.position[0], self.position[1]] == 1:
+            # Check if previous shot
+            if np.abs(self.hits[self.position[0], self.position[1]]) > 0.0:
                 reward = -1
-                self.miss_count += 1
             # Check if new hit or miss
             else:
                 if self.target[self.position[0], self.position[1]] > 0.0:
@@ -142,7 +141,7 @@ class GullyAttackEnv(gym.Env):
         # Assemble new observation and add cursor
         observation = self.background #np.dstack([self.background, self.hits])
         observation[self.position[0], self.position[1]] = 255 
-        observation[self.hits > 0.0] = 0 
+        observation[self.hits > 0.0] = 200 
 
         return observation, reward, done, {}
 
