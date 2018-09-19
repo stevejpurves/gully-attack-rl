@@ -12,10 +12,6 @@ TIME_LIMIT = 512
 MISS_LIMIT = 10
 
 IMAGE_SIZE = 256
-IMAGES = {
-    'background': 'blob.png',
-    'target': 'blob_gray.png'
-}
 
 class GullyAttackEnv(gym.Env):
     """The main OpenAI Gym class. It encapsulates an environment with
@@ -138,10 +134,12 @@ class GullyAttackEnv(gym.Env):
         self.position[0] = divmod(self.position[0], self.image_size)[1]
         self.position[1] = divmod(self.position[1], self.image_size)[1]
 
-        # Assemble new observation and add cursor
-        observation = self.background #np.dstack([self.background, self.hits])
-        observation[self.position[0], self.position[1]] = 255 
-        observation[self.hits > 0.0] = 200 
+        # Assemble new observation (the background plus cursor and shot markers)
+        observation = self.background 
+        # Mark your own position
+        observation[self.position[0], self.position[1]] = 255
+        # Mark points you have shot at before 
+        observation[np.abs(self.hits) > 0.0] = 0 
 
         return observation, reward, done, {}
 
@@ -159,8 +157,9 @@ class GullyAttackEnv(gym.Env):
         self.miss_count = 0
         self.time = 0
         
-        return self.background
-        #return self.observation_space
+        observation = self.background
+        observation[self.position[0], self.position[1]] = 255
+
 
     def render(self, mode='human', close=False):
         if close and self.viewer:
