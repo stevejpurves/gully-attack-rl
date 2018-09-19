@@ -118,7 +118,7 @@ if args.mode == 'train' or args.mode == 'test':
         nb_actions=nb_actions,
         policy=policy,
         memory=memory,
-        nb_steps_warmup=50000,
+        nb_steps_warmup=100,
         gamma=.99,
         target_model_update=10000,
         train_interval=4, delta_clip=1.)
