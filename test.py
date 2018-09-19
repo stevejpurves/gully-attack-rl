@@ -5,6 +5,7 @@ import gym
 from test_env import TestEnv
 import numpy as np
 from os import path
+from time import sleep
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Convolution2D, Permute, Input
@@ -156,3 +157,4 @@ elif args.mode == 'random':
     for n in range(4000):
         env.render()
         env.step(env.action_space.sample())
+        sleep(0.1)

@@ -207,7 +207,11 @@ class TestEnv(gym.Env):
             elif choice == 3:
                 offx += deltax
                 offy += deltay
-            img[offx:(offx+deltax), offy:(offy+deltay), 0:3] = level%2*100+100
+            color = int(level / (self.power-1) * 255)
+            img[offx, offy:(offy+deltay), level%3] = color
+            img[offx:(offx+deltax), offy, level%3] = color
+            img[offy+deltay-1, offy:(offy+deltay), level%3] = color
+            img[offx:(offx+deltax), offy+deltay-1, level%3] = color
 
         if mode == 'rgb_array':
             return img
