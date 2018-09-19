@@ -143,14 +143,16 @@ class OctreeEnv(gym.Env):
                     offx += deltax
                     offy += deltay
             val = self.target[offx, offy]
-            if val == 0:
-                if self.target[offx, offy] == 0.0:
-                    reward = 1
-                else:
+            if val > 0.0:
+                if self.hits[offx, offy] > 0.0:
                     reward = -1
-                self.hits[offx, offy] = reward
+                    self.miss_count += 1
+                else:
+                    reward = 10.0
             else:
-                reward == -1
+                self.miss_count += 1
+                reward = -1
+            self.hits[offx, offy] = 1.0
             self.level = 0
             self.position.fill(0)
         
@@ -158,8 +160,8 @@ class OctreeEnv(gym.Env):
             done = True
 
         # Assemble new observation and add cursor
-        observation = self.background #np.dstack([self.background, self.hits])
-        observation[self.hits > 0.0] = 200 
+        #observation = self.background #np.dstack([self.background, self.hits])
+        #observation[self.hits > 0.0] = 200 
 
         # Assemble new observation (the background plus cursor and shot markers)
         self.observation = np.copy(self.background)
