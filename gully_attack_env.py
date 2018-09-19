@@ -20,6 +20,7 @@ CURSOR_SHOT_VALUE = 10
 LOW_CLIP = 20
 HIGH_CLIP = 234
 
+
 class GullyAttackEnv(gym.Env):
     """The main OpenAI Gym class. It encapsulates an environment with
         arbitrary behind-the-scenes dynamics. An environment can be
@@ -57,7 +58,16 @@ class GullyAttackEnv(gym.Env):
         self.background[self.background < LOW_CLIP] = LOW_CLIP
         self.observation = None
         self.target = self._load_image_as_np(images['target'])
+        self.inv_distance = self._load_image_as_np(images['distance'])[:,:,0]
+        self.inv_distance = self.inv_distance.astype(np.float)
 
+        def kernel(arr):
+            return np.convolve(arr, np.array([0.2,0.2,0.2,0.2,0.2]), 'same')
+
+        self.inv_distance = np.apply_along_axis(kernel, 0, self.inv_distance)
+        self.inv_distance = np.apply_along_axis(kernel, 1, self.inv_distance)
+
+        print(self.inv_distance)
         # (Re)set all counters and state
         self.reset()
 
@@ -116,6 +126,7 @@ class GullyAttackEnv(gym.Env):
         reward = 0
         action_meaning = ACTION_MEANING[action]
         cursor_value = CURSOR_VALUE
+        last_position = np.copy(self.position)
         if action_meaning == 'UP':
             self.position[1] += 1
         elif action_meaning == 'DOWN':
@@ -138,13 +149,19 @@ class GullyAttackEnv(gym.Env):
                     self.miss_count += 1
                     reward = -1
                     self.hits[self.position[0], self.position[1]] = -1
-        
+
         if self.miss_count > self.MISS_LIMIT:
+            reward = -100
             done = True
 
         # Enforce periodic boundary conditions to avoid moving out of frame
         self.position[0] = divmod(self.position[0], self.image_size)[1]
         self.position[1] = divmod(self.position[1], self.image_size)[1]
+
+        if action_meaning != 'SHOOT':
+            last_invdist = self.inv_distance[last_position[0], last_position[1]]
+            invdist = self.inv_distance[self.position[0], self.position[1]]
+            #reward = 10*(invdist - last_invdist)
 
         # Assemble new observation (the background plus cursor and shot markers)
         self.observation = np.copy(self.background)
@@ -158,8 +175,9 @@ class GullyAttackEnv(gym.Env):
 
     def reset(self):
         # Start in a random pixel in the image
-        self.position = [np.random.randint(low=0, high=self.image_size),
-                                  np.random.randint(low=0, high=self.image_size)]
+        # self.position = [np.random.randint(low=0, high=self.image_size),
+        #                           np.random.randint(low=0, high=self.image_size)]
+        self.position = [int(self.image_size/2), int(self.image_size/2)]
 
         # Reset the non-static part of the observational space 
         self.hits = np.zeros_like(self.background, dtype=float)
@@ -194,7 +212,7 @@ class GullyAttackEnv(gym.Env):
         img = np.zeros((*shape, 3), dtype=np.uint8)
         img[:,:,0] = self.observation
         img[:,:,1] = self.observation
-        img[:,:,2] = self.observation
+        img[:,:,2] = self.target
 
         if mode == 'rgb_array':
             return img

@@ -42,7 +42,8 @@ IMAGE_PATH = path.join(path.dirname(__file__), 'images')
 IMAGES = {
     'wallpaper': 'rgb_il2300.crop.png',
     'background': 'grey_il2300.crop.png',
-    'target': 'grey_label_il2300.crop.png'
+    'target': 'grey_label_il2300.crop.png',
+    'distance': 'slope_il2300.crop.png'
 }
 # Folder to write weights and logs
 LOG_FOLDER='logs'
@@ -54,7 +55,7 @@ env = GullyAttackEnv(image_size=IMAGE_SHAPE[0],
                      images=IMAGES, 
                      image_path=IMAGE_PATH,
                      time_limit=1000,
-                     miss_limit=100)
+                     miss_limit=1000000)
 env.seed(RANDOM_SEED)
 
 nb_actions = env.n_actions
@@ -102,14 +103,15 @@ if args.mode == 'train' or args.mode == 'test':
 # the agent initially explores the environment (high eps) and then gradually sticks to what it knows
 # (low eps). We also set a dedicated eps value that is used during testing. Note that we set it to 0.05
 # so that the agent still performs some random actions. This ensures that the agent cannot get stuck.
-if args.mode == 'train' or args.mode == 'test':
-    policy = LinearAnnealedPolicy(EpsGreedyQPolicy(), attr='eps', value_max=1., value_min=.1, value_test=.05,
-                              nb_steps=1000000)
+# if args.mode == 'train' or args.mode == 'test':
+#     policy = LinearAnnealedPolicy(EpsGreedyQPolicy(), attr='eps', value_max=1., value_min=.1, value_test=.05,
+#                               nb_steps=1000000)
 
 # The trade-off between exploration and exploitation is difficult and an on-going research topic.
 # If you want, you can experiment with the parameters or use a different policy. Another popular one
 # is Boltzmann-style exploration:
-# policy = BoltzmannQPolicy(tau=1.)
+if args.mode == 'train' or args.mode == 'test':
+    policy = BoltzmannQPolicy()
 # Feel free to give it a try!
 if args.mode == 'train' or args.mode == 'test':
     dqn = DQNAgent(
@@ -119,8 +121,8 @@ if args.mode == 'train' or args.mode == 'test':
         memory=memory,
         nb_steps_warmup=100,
         gamma=.99,
-        target_model_update=10000,
-        train_interval=4, delta_clip=1.)
+        target_model_update=0.01,
+        train_interval=100, delta_clip=1.)
     dqn.compile(Adam(lr=.00025), metrics=['mae'])
 
 
@@ -135,20 +137,20 @@ if args.mode == 'train':
     log_filename = path.join(LOG_FOLDER, 'dqn_{}_log.json'.format(timestamp))
     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=250000)]
     callbacks += [FileLogger(log_filename, interval=100)]
-    dqn.fit(env, callbacks=callbacks, nb_steps=1750000, log_interval=10000, visualize=args.visualize)
+    dqn.fit(env, callbacks=callbacks, nb_steps=1000000000, log_interval=1000, visualize=args.visualize)
 
     # After training is done, we save the final weights one more time.
     dqn.save_weights(weights_filename, overwrite=True)
 
     # Finally, evaluate our algorithm for 10 episodes.
-    dqn.test(env, nb_episodes=10, visualize=False)
+    #dqn.test(env, nb_episodes=1, visualize=True)
 elif args.mode == 'test':
     print("start testing")
     if not args.weights:
         raise ValueError('weights filename must be specified when testing')
     weights_filename = args.weights
     dqn.load_weights(weights_filename)
-    dqn.test(env, nb_episodes=5, visualize=True)    
+    dqn.test(env, nb_episodes=1, visualize=True, verbose=1)    
 elif args.mode == 'random':
     print("random picker")
     env.reset()
