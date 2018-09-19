@@ -85,7 +85,7 @@ if args.mode == 'train' or args.mode == 'test':
     model.add(Dense(512))
     model.add(Activation('relu'))
     model.add(Dense(nb_actions))
-    model.add(Activation('sigmoid')) # maybe this should be sigmoids?
+    model.add(Activation('linear')) # maybe this should be sigmoids?
     print(model.summary())
 
 ###

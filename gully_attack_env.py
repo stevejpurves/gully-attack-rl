@@ -13,6 +13,13 @@ MISS_LIMIT = 10
 
 IMAGE_SIZE = 256
 
+CURSOR_VALUE = 255
+SHOT_VALUE = 0
+CURSOR_SHOT_VALUE = 10
+
+LOW_CLIP = 20
+HIGH_CLIP = 234
+
 class GullyAttackEnv(gym.Env):
     """The main OpenAI Gym class. It encapsulates an environment with
         arbitrary behind-the-scenes dynamics. An environment can be
@@ -46,7 +53,9 @@ class GullyAttackEnv(gym.Env):
         # The background and target mask is static 
         self.wallpaper = self._load_image_as_np(images['wallpaper'])
         self.background = self._load_image_as_np(images['background'])
-        self.background[self.background > 252] = 252
+        self.background[self.background > HIGH_CLIP] = HIGH_CLIP
+        self.background[self.background < LOW_CLIP] = LOW_CLIP
+        self.observation = None
         self.target = self._load_image_as_np(images['target'])
 
         # (Re)set all counters and state
@@ -106,6 +115,7 @@ class GullyAttackEnv(gym.Env):
 
         reward = 0
         action_meaning = ACTION_MEANING[action]
+        cursor_value = CURSOR_VALUE
         if action_meaning == 'UP':
             self.position[1] += 1
         elif action_meaning == 'DOWN':
@@ -115,6 +125,7 @@ class GullyAttackEnv(gym.Env):
         elif action_meaning == 'RIGHT':
             self.position[0] += 1
         elif action_meaning == 'SHOOT':
+            cursor_value = CURSOR_SHOT_VALUE
             # Check if previous shot
             if np.abs(self.hits[self.position[0], self.position[1]]) > 0.0:
                 reward = -1
@@ -136,13 +147,13 @@ class GullyAttackEnv(gym.Env):
         self.position[1] = divmod(self.position[1], self.image_size)[1]
 
         # Assemble new observation (the background plus cursor and shot markers)
-        observation = self.background 
+        self.observation = np.copy(self.background)
         # Mark your own position
-        observation[self.position[0], self.position[1]] = 255
+        self.observation[self.position[0], self.position[1]] = cursor_value
         # Mark points you have shot at before 
-        observation[np.abs(self.hits) > 0.0] = 0 
+        self.observation[np.abs(self.hits) > 0.0] = SHOT_VALUE
 
-        return observation, reward, done, {}
+        return self.observation, reward, done, {}
 
 
     def reset(self):
@@ -158,10 +169,10 @@ class GullyAttackEnv(gym.Env):
         self.miss_count = 0
         self.time = 0
         
-        observation = self.background
-        observation[self.position[0], self.position[1]] = 255
+        self.observation = np.copy(self.background)
+        self.observation[self.position[0], self.position[1]] = CURSOR_VALUE
 
-        return observation
+        return self.observation
 
     def render(self, mode='human', close=False):
         if close and self.viewer:
@@ -170,15 +181,21 @@ class GullyAttackEnv(gym.Env):
             return
 
         # background is an rgba-array. We use this for rendering.
-        img = np.copy(self.wallpaper[:, :, :-1])
-        img = np.copy(self.background)
-        img[self.position[0], self.position[1], :] = 0
-        hit_mask = self.hits > 0.0
-        img[hit_mask, :] = 0
-        miss_mask = self.hits < 0.0
-        img[miss_mask, 0] = 255        
-        img[miss_mask, 1] = 0        
-        img[miss_mask, 2] = 0        
+        # img = np.copy(self.wallpaper[:, :, :-1])
+        # img[self.position[0], self.position[1], :] = 0
+        # hit_mask = self.hits > 0.0
+        # img[hit_mask, :] = 0
+        # miss_mask = self.hits < 0.0
+        # img[miss_mask, 0] = 255        
+        # img[miss_mask, 1] = 0        
+        # img[miss_mask, 2] = 0        
+
+        shape = self.observation.shape
+        img = np.zeros((*shape, 3), dtype=np.uint8)
+        img[:,:,0] = self.observation
+        img[:,:,1] = self.observation
+        img[:,:,2] = self.observation
+
         if mode == 'rgb_array':
             return img
         elif mode == 'human':
