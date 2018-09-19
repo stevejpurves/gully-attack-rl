@@ -13,6 +13,6 @@ check the [pitch deck](the_reinforcers_gully_attack.pdf) for details of the proj
 
 ## running
 
- - python run.py train  - will (should) run the training
- - python run.py test   - will (should) run the agent based on the trained moel
- - python run.py random - just run the environment and draw random dotss 
+ - python run_gully_attack.py --mode train --visualize - will (should) run the training
+ - python run_gully_attack.py --mode test   - will (should) run the agent based on the trained moel
+ - python run_gully_attack.py random - just run the environment and draw random dotss 
