@@ -13,10 +13,13 @@ TIME_LIMIT = 512
 MISS_LIMIT = 10
 
 IMAGE_SIZE = 256
-IMAGES = {
-    'background': 'blob.png',
-    'target': 'blob_gray.png'
-}
+
+CURSOR_VALUE = 255
+SHOT_VALUE = 0
+CURSOR_SHOT_VALUE = 10
+
+LOW_CLIP = 20
+HIGH_CLIP = 234
 
 def is_power2(num):
 	'states if a number is a power of two'
@@ -58,6 +61,9 @@ class OctreeEnv(gym.Env):
         # The background and target mask is static 
         self.wallpaper = self._load_image_as_np(images['wallpaper'])
         self.background = self._load_image_as_np(images['background'])
+        self.background[self.background > HIGH_CLIP] = HIGH_CLIP
+        self.background[self.background < LOW_CLIP] = LOW_CLIP
+        self.observation = np.copy(self.background)
         self.target = self._load_image_as_np(images['target'])
 
         # (Re)set all counters and state
@@ -155,7 +161,13 @@ class OctreeEnv(gym.Env):
         observation = self.background #np.dstack([self.background, self.hits])
         observation[self.hits > 0.0] = 200 
 
-        return observation, reward, done, {}
+        # Assemble new observation (the background plus cursor and shot markers)
+        self.observation = np.copy(self.background)
+
+        # Mark points you have shot at before 
+        self.observation[np.abs(self.hits) > 0.0] = SHOT_VALUE
+
+        return self.observation, reward, done, {}
 
 
     def reset(self):
@@ -170,7 +182,7 @@ class OctreeEnv(gym.Env):
         self.miss_count = 0
         self.time = 0
         
-        return self.background
+        return np.copy(self.background)
         #return self.observation_space
 
     def render(self, mode='human', close=False):
@@ -180,13 +192,20 @@ class OctreeEnv(gym.Env):
             return
 
         # background is an rgba-array. We use this for rendering.
-        img = np.copy(self.wallpaper[:, :, :-1])
-        hit_mask = self.hits > 0.0
-        img[hit_mask, :] = 0
-        miss_mask = self.hits < 0.0
-        img[miss_mask, 0] = 255
-        img[miss_mask, 1] = 0        
-        img[miss_mask, 2] = 0
+        # img = np.copy(self.wallpaper[:, :, :-1])
+        # img[self.position[0], self.position[1], :] = 0
+        # hit_mask = self.hits > 0.0
+        # img[hit_mask, :] = 0
+        # miss_mask = self.hits < 0.0
+        # img[miss_mask, 0] = 255        
+        # img[miss_mask, 1] = 0        
+        # img[miss_mask, 2] = 0      
+        
+        shape = self.observation.shape
+        img = np.zeros((*shape, 3), dtype=np.uint8)
+        img[:,:,0] = self.observation
+        img[:,:,1] = self.observation
+        img[:,:,2] = self.observation
 
         # create octree mask
         offx = 0
@@ -209,8 +228,8 @@ class OctreeEnv(gym.Env):
                 offy += deltay
             color = int(level / (self.power-1) * 255)
             img[offx, offy:(offy+deltay), level%3] = color
+            img[offx+deltax-1, offy:(offy+deltay), level%3] = color
             img[offx:(offx+deltax), offy, level%3] = color
-            img[offy+deltay-1, offy:(offy+deltay), level%3] = color
             img[offx:(offx+deltax), offy+deltay-1, level%3] = color
 
         if mode == 'rgb_array':

@@ -1,6 +1,6 @@
 import argparse
 import time
-
+import os
 import gym
 from octree_gully_env import OctreeEnv
 import numpy as np
@@ -24,40 +24,39 @@ from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test'], default='random')
 parser.add_argument('--weights', type=str, default=None)
+parser.add_argument('--visualize', action='store_true')
 args = parser.parse_args()
 
 
 # Setup the environment
-# We use two channels, the first being the grayscale version of the background and the
-# second is used for the hits and misses state
-CHANNELS = 2
-
 IMAGE_SHAPE = (128, 128)
+# Random seed
+RANDOM_SEED = 43
 # its possible as per the keras-rl atari example to preent multiple frames of teh environment
 # to the network to allow teh network to see changes over a short time span
 # setting this to 1 for the first pass, so agent will only make decisions based on the current state
 NUM_FRAMES = 1
-
-# the window applied to look back in sequential memory
-WINDOW_LENGTH = 4
-
+# the window applied to look back in sequential memory. We probably can do with no memory in this case
+WINDOW_LENGTH = 1
 # the background image (rgba) and the target
-
 IMAGE_PATH = path.join(path.dirname(__file__), 'images')
 IMAGES = {
     'wallpaper': 'rgb_il2300.crop.png',
     'background': 'grey_il2300.crop.png',
     'target': 'grey_label_il2300.crop.png'
 }
+# Folder to write weights and logs
+LOG_FOLDER='logs'
+if not os.path.exists(LOG_FOLDER):
+    os.makedirs(LOG_FOLDER)
 
+np.random.seed(RANDOM_SEED)
 env = OctreeEnv(image_size=IMAGE_SHAPE[0], 
                      images=IMAGES, 
-                     image_path=IMAGE_PATH, 
-                     time_limit=100000,
-                     miss_limit=1000)
-
-np.random.seed(42)
-env.seed(42)
+                     image_path=IMAGE_PATH,
+                     time_limit=1000,
+                     miss_limit=100)
+env.seed(RANDOM_SEED)
 
 nb_actions = env.n_actions
 
@@ -81,7 +80,7 @@ if args.mode == 'train' or args.mode == 'test':
     model.add(Activation('relu'))
     model.add(Convolution2D(64, (4, 4), strides=(2, 2)))
     model.add(Activation('relu'))
-    model.add(Convolution2D(64, (3, 3), strides=(1, 1)))
+    model.add(Convolution2D(128, (3, 3), strides=(1, 1)))
     model.add(Activation('relu'))
     model.add(Flatten())
     model.add(Dense(512))
@@ -132,12 +131,12 @@ if args.mode == 'train':
     # Okay, now it's time to learn something! We capture the interrupt exception so that training
     # can be prematurely aborted. Notice that you can the built-in Keras callbacks!
     timestamp = time.time()
-    weights_filename = 'dqn_{}_weights.h5f'.format(timestamp)
-    checkpoint_weights_filename = 'dqn_' + str(timestamp) + '_weights_{step}.h5f'
-    log_filename = 'dqn_{}_log.json'.format(timestamp)
+    weights_filename = path.join(LOG_FOLDER, 'dqn_{}_weights.h5f'.format(timestamp))
+    checkpoint_weights_filename = path.join(LOG_FOLDER, 'dqn_' + str(timestamp) + '_weights_{step}.h5f')
+    log_filename = path.join(LOG_FOLDER, 'dqn_{}_log.json'.format(timestamp))
     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=250000)]
     callbacks += [FileLogger(log_filename, interval=100)]
-    dqn.fit(env, callbacks=callbacks, nb_steps=1750000, log_interval=10000)
+    dqn.fit(env, callbacks=callbacks, nb_steps=1750000, log_interval=10000, visualize=args.visualize)
 
     # After training is done, we save the final weights one more time.
     dqn.save_weights(weights_filename, overwrite=True)
@@ -150,7 +149,7 @@ elif args.mode == 'test':
         raise ValueError('weights filename must be specified when testing')
     weights_filename = args.weights
     dqn.load_weights(weights_filename)
-    dqn.test(env, nb_episodes=10, visualize=True)    
+    dqn.test(env, nb_episodes=5, visualize=True)    
 elif args.mode == 'random':
     print("random picker")
     env.reset()
