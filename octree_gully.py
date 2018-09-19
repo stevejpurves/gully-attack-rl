@@ -131,9 +131,9 @@ if args.mode == 'train':
     # Okay, now it's time to learn something! We capture the interrupt exception so that training
     # can be prematurely aborted. Notice that you can the built-in Keras callbacks!
     timestamp = time.time()
-    weights_filename = path.join(LOG_FOLDER, 'dqn_{}_weights.h5f'.format(timestamp))
-    checkpoint_weights_filename = path.join(LOG_FOLDER, 'dqn_' + str(timestamp) + '_weights_{step}.h5f')
-    log_filename = path.join(LOG_FOLDER, 'dqn_{}_log.json'.format(timestamp))
+    weights_filename = path.join(LOG_FOLDER, 'dqn_oc_{}_weights.h5f'.format(timestamp))
+    checkpoint_weights_filename = path.join(LOG_FOLDER, 'dqn_oc_' + str(timestamp) + '_weights_{step}.h5f')
+    log_filename = path.join(LOG_FOLDER, 'dqn_oc_{}_log.json'.format(timestamp))
     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=250000)]
     callbacks += [FileLogger(log_filename, interval=100)]
     dqn.fit(env, callbacks=callbacks, nb_steps=1750000, log_interval=10000, visualize=args.visualize)
