@@ -1,8 +1,10 @@
-# gym-picker
-Playing around with OpenAI Gym Environments and Keras-RL
+# Gully Attack
 
-This setup has been created from merging the [`keras-rl` atari example](https://github.com/keras-rl/keras-rl/blob/master/examples/dqn_atari.py) with a customer environment using images as state and a basis for rewards.
+The RL portion of the work done at the Force ML Hackathon 2018
 
+This setup has been created from merging the [`keras-rl` atari example](https://github.com/keras-rl/keras-rl/blob/master/examples/dqn_atari.py) with a custom environment using images as state and a basis for rewards.
+
+check the [pitch deck](the_reinforcers_gully_attack.pdf) for details of the project
 
 ## Installation
 
