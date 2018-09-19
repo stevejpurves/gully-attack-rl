@@ -46,6 +46,7 @@ class GullyAttackEnv(gym.Env):
         # The background and target mask is static 
         self.wallpaper = self._load_image_as_np(images['wallpaper'])
         self.background = self._load_image_as_np(images['background'])
+        self.background[self.background > 252] = 252
         self.target = self._load_image_as_np(images['target'])
 
         # (Re)set all counters and state
@@ -120,7 +121,7 @@ class GullyAttackEnv(gym.Env):
             # Check if new hit or miss
             else:
                 if self.target[self.position[0], self.position[1]] > 0.0:
-                    reward = 1
+                    reward = 10
                     self.hits[self.position[0], self.position[1]] = 1
                 else:
                     self.miss_count += 1
@@ -160,6 +161,7 @@ class GullyAttackEnv(gym.Env):
         observation = self.background
         observation[self.position[0], self.position[1]] = 255
 
+        return observation
 
     def render(self, mode='human', close=False):
         if close and self.viewer:
@@ -169,6 +171,7 @@ class GullyAttackEnv(gym.Env):
 
         # background is an rgba-array. We use this for rendering.
         img = np.copy(self.wallpaper[:, :, :-1])
+        img = np.copy(self.background)
         img[self.position[0], self.position[1], :] = 0
         hit_mask = self.hits > 0.0
         img[hit_mask, :] = 0
