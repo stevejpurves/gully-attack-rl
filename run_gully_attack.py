@@ -52,7 +52,7 @@ if not os.path.exists(LOG_FOLDER):
 np.random.seed(RANDOM_SEED)
 env = GullyAttackEnv(image_size=IMAGE_SHAPE[0], 
                      images=IMAGES, 
-                     image_path=IMAGE_PATH, 
+                     image_path=IMAGE_PATH,
                      time_limit=1000,
                      miss_limit=100)
 env.seed(RANDOM_SEED)
@@ -148,7 +148,7 @@ elif args.mode == 'test':
         raise ValueError('weights filename must be specified when testing')
     weights_filename = args.weights
     dqn.load_weights(weights_filename)
-    dqn.test(env, nb_episodes=10, visualize=True)    
+    dqn.test(env, nb_episodes=5, visualize=True)    
 elif args.mode == 'random':
     print("random picker")
     env.reset()
