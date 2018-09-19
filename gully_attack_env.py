@@ -20,6 +20,7 @@ CURSOR_SHOT_VALUE = 10
 LOW_CLIP = 20
 HIGH_CLIP = 234
 
+
 class GullyAttackEnv(gym.Env):
     """The main OpenAI Gym class. It encapsulates an environment with
         arbitrary behind-the-scenes dynamics. An environment can be
@@ -140,6 +141,7 @@ class GullyAttackEnv(gym.Env):
                     self.hits[self.position[0], self.position[1]] = -1
         
         if self.miss_count > self.MISS_LIMIT:
+            reward = -100
             done = True
 
         # Enforce periodic boundary conditions to avoid moving out of frame
@@ -158,8 +160,9 @@ class GullyAttackEnv(gym.Env):
 
     def reset(self):
         # Start in a random pixel in the image
-        self.position = [np.random.randint(low=0, high=self.image_size),
-                                  np.random.randint(low=0, high=self.image_size)]
+        # self.position = [np.random.randint(low=0, high=self.image_size),
+        #                           np.random.randint(low=0, high=self.image_size)]
+        self.position = [int(self.image_size/2), int(self.image_size/2)]
 
         # Reset the non-static part of the observational space 
         self.hits = np.zeros_like(self.background, dtype=float)
