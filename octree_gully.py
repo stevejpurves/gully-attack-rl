@@ -2,7 +2,7 @@ import argparse
 import time
 
 import gym
-from test_env import TestEnv
+from octree_gully_env import OctreeEnv
 import numpy as np
 from os import path
 from time import sleep
@@ -50,7 +50,7 @@ IMAGES = {
     'target': 'grey_label_il2300.crop.png'
 }
 
-env = TestEnv(image_size=IMAGE_SHAPE[0], 
+env = OctreeEnv(image_size=IMAGE_SHAPE[0], 
                      images=IMAGES, 
                      image_path=IMAGE_PATH, 
                      time_limit=100000,

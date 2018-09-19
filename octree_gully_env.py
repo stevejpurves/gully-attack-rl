@@ -22,7 +22,7 @@ def is_power2(num):
 	'states if a number is a power of two'
 	return num != 0 and ((num & (num - 1)) == 0)
 
-class TestEnv(gym.Env):
+class OctreeEnv(gym.Env):
     """The main OpenAI Gym class. It encapsulates an environment with
         arbitrary behind-the-scenes dynamics. An environment can be
         partially or fully observed.
