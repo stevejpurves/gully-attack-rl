@@ -143,11 +143,11 @@ class GullyAttackEnv(gym.Env):
             # Check if new hit or miss
             else:
                 if self.target[self.position[0], self.position[1]] > 0.0:
-                    reward = 100
+                    reward = 10
                     self.hits[self.position[0], self.position[1]] = 1
                 else:
                     self.miss_count += 1
-                    reward = -10
+                    reward = -1
                     self.hits[self.position[0], self.position[1]] = -1
 
         if self.miss_count > self.MISS_LIMIT:
@@ -161,7 +161,7 @@ class GullyAttackEnv(gym.Env):
         if action_meaning != 'SHOOT':
             last_invdist = self.inv_distance[last_position[0], last_position[1]]
             invdist = self.inv_distance[self.position[0], self.position[1]]
-            reward = 10*(invdist - last_invdist)
+            #reward = 10*(invdist - last_invdist)
 
         # Assemble new observation (the background plus cursor and shot markers)
         self.observation = np.copy(self.background)

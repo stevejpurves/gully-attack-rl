@@ -111,7 +111,7 @@ if args.mode == 'train' or args.mode == 'test':
 # If you want, you can experiment with the parameters or use a different policy. Another popular one
 # is Boltzmann-style exploration:
 if args.mode == 'train' or args.mode == 'test':
-    policy = BoltzmannQPolicy(tau=1.)
+    policy = BoltzmannQPolicy()
 # Feel free to give it a try!
 if args.mode == 'train' or args.mode == 'test':
     dqn = DQNAgent(
@@ -143,7 +143,7 @@ if args.mode == 'train':
     dqn.save_weights(weights_filename, overwrite=True)
 
     # Finally, evaluate our algorithm for 10 episodes.
-    dqn.test(env, nb_episodes=1, visualize=True)
+    #dqn.test(env, nb_episodes=1, visualize=True)
 elif args.mode == 'test':
     print("start testing")
     if not args.weights:
