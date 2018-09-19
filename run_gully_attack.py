@@ -42,7 +42,8 @@ IMAGE_PATH = path.join(path.dirname(__file__), 'images')
 IMAGES = {
     'wallpaper': 'rgb_il2300.crop.png',
     'background': 'grey_il2300.crop.png',
-    'target': 'grey_label_il2300.crop.png'
+    'target': 'grey_label_il2300.crop.png',
+    'distance': 'slope_il2300.crop.png'
 }
 # Folder to write weights and logs
 LOG_FOLDER='logs'
@@ -53,8 +54,8 @@ np.random.seed(RANDOM_SEED)
 env = GullyAttackEnv(image_size=IMAGE_SHAPE[0], 
                      images=IMAGES, 
                      image_path=IMAGE_PATH,
-                     time_limit=1000000,
-                     miss_limit=10)
+                     time_limit=1000,
+                     miss_limit=1000000)
 env.seed(RANDOM_SEED)
 
 nb_actions = env.n_actions
@@ -120,7 +121,7 @@ if args.mode == 'train' or args.mode == 'test':
         memory=memory,
         nb_steps_warmup=100,
         gamma=.99,
-        target_model_update=0,
+        target_model_update=0.01,
         train_interval=100, delta_clip=1.)
     dqn.compile(Adam(lr=.00025), metrics=['mae'])
 

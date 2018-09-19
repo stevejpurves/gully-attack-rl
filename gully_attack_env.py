@@ -58,7 +58,16 @@ class GullyAttackEnv(gym.Env):
         self.background[self.background < LOW_CLIP] = LOW_CLIP
         self.observation = None
         self.target = self._load_image_as_np(images['target'])
+        self.inv_distance = self._load_image_as_np(images['distance'])[:,:,0]
+        self.inv_distance = self.inv_distance.astype(np.float)
 
+        def kernel(arr):
+            return np.convolve(arr, np.array([0.2,0.2,0.2,0.2,0.2]), 'same')
+
+        self.inv_distance = np.apply_along_axis(kernel, 0, self.inv_distance)
+        self.inv_distance = np.apply_along_axis(kernel, 1, self.inv_distance)
+
+        print(self.inv_distance)
         # (Re)set all counters and state
         self.reset()
 
@@ -117,6 +126,7 @@ class GullyAttackEnv(gym.Env):
         reward = 0
         action_meaning = ACTION_MEANING[action]
         cursor_value = CURSOR_VALUE
+        last_position = np.copy(self.position)
         if action_meaning == 'UP':
             self.position[1] += 1
         elif action_meaning == 'DOWN':
@@ -133,13 +143,13 @@ class GullyAttackEnv(gym.Env):
             # Check if new hit or miss
             else:
                 if self.target[self.position[0], self.position[1]] > 0.0:
-                    reward = 10
+                    reward = 100
                     self.hits[self.position[0], self.position[1]] = 1
                 else:
                     self.miss_count += 1
-                    reward = -1
+                    reward = -10
                     self.hits[self.position[0], self.position[1]] = -1
-        
+
         if self.miss_count > self.MISS_LIMIT:
             reward = -100
             done = True
@@ -147,6 +157,11 @@ class GullyAttackEnv(gym.Env):
         # Enforce periodic boundary conditions to avoid moving out of frame
         self.position[0] = divmod(self.position[0], self.image_size)[1]
         self.position[1] = divmod(self.position[1], self.image_size)[1]
+
+        if action_meaning != 'SHOOT':
+            last_invdist = self.inv_distance[last_position[0], last_position[1]]
+            invdist = self.inv_distance[self.position[0], self.position[1]]
+            reward = 10*(invdist - last_invdist)
 
         # Assemble new observation (the background plus cursor and shot markers)
         self.observation = np.copy(self.background)
@@ -197,7 +212,7 @@ class GullyAttackEnv(gym.Env):
         img = np.zeros((*shape, 3), dtype=np.uint8)
         img[:,:,0] = self.observation
         img[:,:,1] = self.observation
-        img[:,:,2] = self.observation
+        img[:,:,2] = self.target
 
         if mode == 'rgb_array':
             return img
